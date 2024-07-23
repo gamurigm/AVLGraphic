@@ -1,0 +1,29 @@
+# Project: AVLGraph
+# Makefile created by Dev-C++ 6.5
+
+CPP      = g++.exe
+CC       = gcc.exe
+WINDRES  = windres.exe
+OBJ      = main.o
+LINKOBJ  = main.o
+LIBS     = -L"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib" -L"C:/Program Files (x86)/Dev-Cpp/MinGW32/i686-w64-mingw32/lib" -static-libstdc++ -static-libgcc -mwindows -s
+INCS     = -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/i686-w64-mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib/gcc/i686-w64-mingw32/10.2.0/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib/gcc/i686-w64-mingw32/10.2.0/include-fixed"
+CXXINCS  = -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/i686-w64-mingw32/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib/gcc/i686-w64-mingw32/10.2.0/include" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/lib/gcc/i686-w64-mingw32/10.2.0/include-fixed" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/include/c++/10.2.0" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/include/c++/10.2.0/i686-w64-mingw32" -I"C:/Program Files (x86)/Dev-Cpp/MinGW32/include/c++/10.2.0/backward"
+BIN      = AVLGraph.exe
+CXXFLAGS = $(CXXINCS) -O2 -msse -msse2 -mfpmath=sse
+ENCODINGS = -finput-charset=utf-8 -fexec-charset=windows-1252
+CFLAGS   = $(INCS) -O2 -msse -msse2 -mfpmath=sse
+RM       = rm.exe -f
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before $(BIN) all-after
+
+clean: clean-custom
+	${RM} $(OBJ) $(BIN)
+
+$(BIN): $(OBJ)
+	$(CPP) $(LINKOBJ) -o $(BIN) $(LIBS)
+
+main.o: main.cpp AVL.h Lista.h
+	$(CPP) -c main.cpp -o main.o $(CXXFLAGS)  $(ENCODINGS) 
