@@ -170,7 +170,7 @@ void drawTree(HDC hdc, struct nodo* node, int x, int y, int xOffset) {
     SelectObject(hdc, hNodeBrush);
 
     // Draw the current node
-    Ellipse(hdc, x - 20, y - 20, x + 20, y + 20);
+    Ellipse(hdc, x - 35, y - 35, x + 35, y + 35);
 
     // Set the text color and background mode for the node text
     SetTextColor(hdc, COLOR_NODE_TEXT);
@@ -178,13 +178,13 @@ void drawTree(HDC hdc, struct nodo* node, int x, int y, int xOffset) {
 
     // Draw the node's value
     std::string value = std::to_string(node->clave);
-    TextOut(hdc, x - 10, y - 10, value.c_str(), value.length());
+    TextOut(hdc, x - 20, y - 12, value.c_str(), value.length());
 
     // Clean up the brush
     DeleteObject(hNodeBrush);
 
     // Set the pen color for drawing lines
-    HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255)); // White pen
+    HPEN hPen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0)); // White pen
     HPEN hOldPen = (HPEN)SelectObject(hdc, hPen);
 
     // Draw lines to children
