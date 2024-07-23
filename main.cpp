@@ -25,6 +25,14 @@ void drawTree(HDC hdc, struct nodo* node, int x, int y, int xOffset);
 void performTraversal(HWND hwnd, int traversalType);
 void performSearch(HWND hwnd);
 
+// Utility function to convert in-order traversal to a string
+void inOrderTraversalToString(struct nodo* node, std::stringstream& ss) {
+    if (node == nullptr) return;
+    inOrderTraversalToString(node->izquierda, ss);
+    ss << node->clave << " ";
+    inOrderTraversalToString(node->derecha, ss);
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     const char CLASS_NAME[] = "AVL Tree GUI Class";
 
@@ -90,7 +98,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             break;
         }
         case ID_TRAVERSALS:
-            performTraversal(hwnd, 0);  // 0 for in-order, you can modify this
+            performTraversal(hwnd, 0);  // 0 for in-order traversal
             break;
         case ID_SEARCH:
             performSearch(hwnd);
@@ -196,24 +204,26 @@ void drawTree(HDC hdc, struct nodo* node, int x, int y, int xOffset) {
     DeleteObject(hPen);
 }
 
-
 void performTraversal(HWND hwnd, int traversalType) {
     std::stringstream ss;
     switch (traversalType) {
-    case 0: // In-order
+    case 0: { // In-order
         ss << "In-order traversal: ";
-        inOrden(root);
+        inOrderTraversalToString(root, ss);
         break;
-    case 1: // Pre-order
+    }
+    case 1: { // Pre-order
         ss << "Pre-order traversal: ";
         preOrden(root);
         break;
-    case 2: // Post-order
+    }
+    case 2: { // Post-order
         ss << "Post-order traversal: ";
         postOrden(root);
         break;
     }
-    MessageBox(hwnd, ss.str().c_str(), "Traversal Result", MB_OK);
+    }
+    MessageBox(hwnd, ss.str().c_str(), "Traversal Result", MB_OK | MB_ICONINFORMATION);
 }
 
 void performSearch(HWND hwnd) {
@@ -229,6 +239,20 @@ void performSearch(HWND hwnd) {
         } else {
             ss << "Value " << value << " not found in the tree.";
         }
+        
+        // Guardar los colores actuales del sistema
+        COLORREF oldBkColor = GetSysColor(COLOR_WINDOW);
+        COLORREF oldTextColor = GetSysColor(COLOR_WINDOWTEXT);
+
+        // Establecer nuevos colores
+        SetSysColors(1, (CONST INT[]){COLOR_WINDOW}, (CONST COLORREF[]){RGB(255,255,255)});
+        SetSysColors(1, (CONST INT[]){COLOR_WINDOWTEXT}, (CONST COLORREF[]){RGB(0,0,0)});
+
+        // Mostrar el MessageBox
         MessageBox(hwnd, ss.str().c_str(), "Search Result", MB_OK);
+
+        // Restaurar los colores originales
+        SetSysColors(1, (CONST INT[]){COLOR_WINDOW}, &oldBkColor);
+        SetSysColors(1, (CONST INT[]){COLOR_WINDOWTEXT}, &oldTextColor);
     }
 }

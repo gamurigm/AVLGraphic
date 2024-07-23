@@ -26,4 +26,4 @@ $(BIN): $(OBJ)
 	$(CPP) $(LINKOBJ) -o $(BIN) $(LIBS)
 
 main.o: main.cpp AVL.h Lista.h
-	$(CPP) -c main.cpp -o main.o $(CXXFLAGS) 
+	$(CPP) -c main.cpp -o main.o $(CXXFLAGS)  $(ENCODINGS) 
