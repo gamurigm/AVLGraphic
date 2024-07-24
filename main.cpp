@@ -10,7 +10,7 @@
 #define ID_EXIT 5
 #define ID_INPUT 6
 
-#define COLOR_BACKGROUND RGB(0, 0, 0)
+#define COLOR_BACKGROUND RGB(0, 1, 21)
 #define COLOR_BUTTON RGB(50, 50, 50)
 #define COLOR_TEXT RGB(255, 255, 255)
 #define COLOR_NODE RGB(0, 255, 0)
@@ -31,6 +31,20 @@ void inOrderTraversalToString(struct nodo* node, std::stringstream& ss) {
     inOrderTraversalToString(node->izquierda, ss);
     ss << node->clave << " ";
     inOrderTraversalToString(node->derecha, ss);
+}
+
+void preOrderTraversalToString(struct nodo* node, std::stringstream& ss) {
+    if (node == nullptr) return;
+    ss << node->clave << " ";
+    preOrderTraversalToString(node->izquierda, ss);
+    preOrderTraversalToString(node->derecha, ss);
+}
+
+void postOrderTraversalToString(struct nodo* node, std::stringstream& ss) {
+    if (node == nullptr) return;
+    postOrderTraversalToString(node->izquierda, ss);
+    postOrderTraversalToString(node->derecha, ss);
+    ss << node->clave << " ";
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
@@ -98,7 +112,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             break;
         }
         case ID_TRAVERSALS:
-            performTraversal(hwnd, 0);  // 0 for in-order traversal
+            performTraversal(hwnd, 1);  // 0 for in-order traversal
             break;
         case ID_SEARCH:
             performSearch(hwnd);
@@ -120,19 +134,27 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         break;
 
     case WM_PAINT: {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hwnd, &ps);
-        HBRUSH hBrush = CreateSolidBrush(COLOR_BACKGROUND);
-        FillRect(hdc, &ps.rcPaint, hBrush);
-        DeleteObject(hBrush);
-        SetTextColor(hdc, COLOR_TEXT);
-        SetBkMode(hdc, TRANSPARENT);
-        if (root != nullptr) {
-            drawTree(hdc, root, 400, 100, 200);
-        }
-        EndPaint(hwnd, &ps);
-        break;
-    }
+	    PAINTSTRUCT ps;
+	    HDC hdc = BeginPaint(hwnd, &ps);
+	
+	    // Establecer el color de fondo y el modo
+	    SetBkMode(hdc, OPAQUE); // Asegúrate de usar OPAQUE aquí si deseas un fondo sólido
+	    SetBkColor(hdc, COLOR_BACKGROUND);
+	
+	    // Rellenar el fondo de la ventana
+	    HBRUSH hBrush = CreateSolidBrush(COLOR_BACKGROUND);
+	    FillRect(hdc, &ps.rcPaint, hBrush);
+	    DeleteObject(hBrush);
+	
+	    // Dibuja el árbol
+	    if (root != nullptr) {
+	        drawTree(hdc, root, 400, 100, 200);
+	    }
+	
+	    EndPaint(hwnd, &ps);
+	    break;
+	}
+	
 
     case WM_CTLCOLORBTN: {
         HDC hdc = (HDC)wParam;
@@ -144,13 +166,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     case WM_CTLCOLORSTATIC: {
         HDC hdc = (HDC)wParam;
         SetTextColor(hdc, COLOR_TEXT);
-        SetBkMode(hdc, TRANSPARENT);
+        SetBkMode(hdc, COLOR_BACKGROUND);
         return (INT_PTR)GetStockObject(NULL_BRUSH);
     }
 
     case WM_CTLCOLORDLG: {
         HDC hdc = (HDC)wParam;
-        SetBkColor(hdc, COLOR_BACKGROUND);
+        SetBkColor(hdc, COLOR_BACKGROUND); //****************************/
         return (INT_PTR)CreateSolidBrush(COLOR_BACKGROUND);
     }
 
@@ -161,6 +183,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
+
 
 void drawTree(HDC hdc, struct nodo* node, int x, int y, int xOffset) {
     if (node == nullptr) return;
@@ -174,7 +197,7 @@ void drawTree(HDC hdc, struct nodo* node, int x, int y, int xOffset) {
 
     // Set the text color and background mode for the node text
     SetTextColor(hdc, COLOR_NODE_TEXT);
-    SetBkMode(hdc, TRANSPARENT);
+    SetBkMode(hdc, COLOR_BACKGROUND);//******************/
 
     // Draw the node's value
     std::string value = std::to_string(node->clave);
@@ -204,34 +227,60 @@ void drawTree(HDC hdc, struct nodo* node, int x, int y, int xOffset) {
     DeleteObject(hPen);
 }
 
+
+
+// Función auxiliar para mostrar MessageBox con colores correctos
+void showColoredMessageBox(HWND hwnd, const char* message, const char* title, UINT type) {
+    // Guardar los colores actuales del sistema
+    COLORREF oldBkColor = GetSysColor(COLOR_WINDOW);
+    COLORREF oldTextColor = GetSysColor(COLOR_WINDOWTEXT);
+
+    // Establecer nuevos colores (fondo negro, texto blanco)
+    SetSysColors(1, (CONST INT[]){COLOR_WINDOW}, (CONST COLORREF[]){RGB(0,0,0)});
+    SetSysColors(1, (CONST INT[]){COLOR_WINDOWTEXT}, (CONST COLORREF[]){RGB(255,255,255)});
+
+    // Mostrar el MessageBox
+    MessageBox(hwnd, message, title, type);
+
+    // Restaurar los colores originales
+    SetSysColors(1, (CONST INT[]){COLOR_WINDOW}, &oldBkColor);
+    SetSysColors(1, (CONST INT[]){COLOR_WINDOWTEXT}, &oldTextColor);
+}
+
 void performTraversal(HWND hwnd, int traversalType) {
+    if (root == nullptr) {
+        showColoredMessageBox(hwnd, "El árbol está vacío. Inserta algunos nodos primero.", "Error", MB_OK | MB_ICONERROR);
+        return;
+    }
+    
     std::stringstream ss;
     switch (traversalType) {
-    case 0: { // In-order
-        ss << "In-order traversal: ";
-        inOrderTraversalToString(root, ss);
-        break;
+        case 0: { 
+            ss << "In-order traversal: ";
+            inOrderTraversalToString(root, ss);
+            break;
+        }
+        case 1: {
+            ss << "Pre-Order traversal: ";   
+            preOrderTraversalToString(root, ss);
+            break;
+        }
+        case 2: {
+            ss << "Post-Order traversal: ";    
+            postOrderTraversalToString(root, ss);
+            break;
+        }
     }
-    case 1: { // Pre-order
-        ss << "Pre-order traversal: ";
-        preOrden(root);
-        break;
-    }
-    case 2: { // Post-order
-        ss << "Post-order traversal: ";
-        postOrden(root);
-        break;
-    }
-    }
-    MessageBox(hwnd, ss.str().c_str(), "Traversal Result", MB_OK | MB_ICONINFORMATION);
+    showColoredMessageBox(hwnd, ss.str().c_str(), "Traversal Result", MB_OK | MB_ICONINFORMATION);
 }
+
 
 void performSearch(HWND hwnd) {
     char buffer[256];
     GetWindowText(GetDlgItem(hwnd, ID_INPUT), buffer, 256);
     int value = atoi(buffer);
     if (value != 0) {
-        ResultadoBusqueda result = bfs(root, value);
+        ResultadoBusqueda result = dfs(root, value);
         std::stringstream ss;
         if (result.encontrado) {
             ss << "Value " << value << " found at level " << result.nivel
@@ -240,19 +289,6 @@ void performSearch(HWND hwnd) {
             ss << "Value " << value << " not found in the tree.";
         }
         
-        // Guardar los colores actuales del sistema
-        COLORREF oldBkColor = GetSysColor(COLOR_WINDOW);
-        COLORREF oldTextColor = GetSysColor(COLOR_WINDOWTEXT);
-
-        // Establecer nuevos colores
-        SetSysColors(1, (CONST INT[]){COLOR_WINDOW}, (CONST COLORREF[]){RGB(255,255,255)});
-        SetSysColors(1, (CONST INT[]){COLOR_WINDOWTEXT}, (CONST COLORREF[]){RGB(0,0,0)});
-
-        // Mostrar el MessageBox
-        MessageBox(hwnd, ss.str().c_str(), "Search Result", MB_OK);
-
-        // Restaurar los colores originales
-        SetSysColors(1, (CONST INT[]){COLOR_WINDOW}, &oldBkColor);
-        SetSysColors(1, (CONST INT[]){COLOR_WINDOWTEXT}, &oldTextColor);
+        showColoredMessageBox(hwnd, ss.str().c_str(), "Search Result", MB_OK);
     }
 }
