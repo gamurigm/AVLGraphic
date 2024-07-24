@@ -1,6 +1,8 @@
-\*.exe
-\*.out
-\*.o
-\*.obj
-\*.dll
-\*.so
+*.exe
+*.out
+*.o
+*.obj
+*.dll
+*.so
+*.layout
+*.win
