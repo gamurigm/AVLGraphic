@@ -5,12 +5,14 @@
 
 #define ID_INSERTION 1
 #define ID_TRAVERSALS 2
-#define ID_SEARCH 3
+//#define ID_SEARCH 3
 #define ID_DELETION 4
 #define ID_EXIT 5
 #define ID_INPUT 6
+#define ID_DFS 7
+#define ID_BFS 8
 
-#define COLOR_BACKGROUND RGB(0, 1, 21)
+#define COLOR_BACKGROUND RGB(1, 10, 120)
 #define COLOR_BUTTON RGB(50, 50, 50)
 #define COLOR_TEXT RGB(255, 255, 255)
 #define COLOR_NODE RGB(0, 255, 0)
@@ -21,10 +23,11 @@ struct nodo* root = nullptr;
 
 // Function prototypes
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-void drawTree(HDC hdc, struct nodo* node, int x, int y, int xOffset);
+void drawTree(HDC hdc, struct nodo* node, int x, int y, int xOffset, int level, int maxLevel);
 void performTraversal(HWND hwnd, int traversalType);
-void performSearch(HWND hwnd);
+void performSearch(HWND hwnd, bool isDFS);
 
+// Utility function to convert in-order traversal to a string
 // Utility function to convert in-order traversal to a string
 void inOrderTraversalToString(struct nodo* node, std::stringstream& ss) {
     if (node == nullptr) return;
@@ -46,6 +49,14 @@ void postOrderTraversalToString(struct nodo* node, std::stringstream& ss) {
     postOrderTraversalToString(node->derecha, ss);
     ss << node->clave << " ";
 }
+
+int getTreeHeight(struct nodo* node) {
+    if (node == nullptr) return 0;
+    int leftHeight = getTreeHeight(node->izquierda);
+    int rightHeight = getTreeHeight(node->derecha);
+    return 1 + (leftHeight > rightHeight ? leftHeight : rightHeight);
+}
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     const char CLASS_NAME[] = "AVL Tree GUI Class";
@@ -92,12 +103,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     switch (uMsg) {
     case WM_CREATE:
         CreateWindow("BUTTON", "Insertar", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 10, 10, 100, 30, hwnd, (HMENU)ID_INSERTION, NULL, NULL);
-        CreateWindow("BUTTON", "Recorridos", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 120, 10, 100, 30, hwnd, (HMENU)ID_TRAVERSALS, NULL, NULL);
-        CreateWindow("BUTTON", "Buscar", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 230, 10, 100, 30, hwnd, (HMENU)ID_SEARCH, NULL, NULL);
-        CreateWindow("BUTTON", "Eliminar", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 340, 10, 100, 30, hwnd, (HMENU)ID_DELETION, NULL, NULL);
-        CreateWindow("BUTTON", "Salir", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 450, 10, 100, 30, hwnd, (HMENU)ID_EXIT, NULL, NULL);
-        hInput = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER, 10, 50, 100, 25, hwnd, (HMENU)ID_INPUT, NULL, NULL);
-        break;
+		        CreateWindow("BUTTON", "Recorridos", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 120, 10, 100, 30, hwnd, (HMENU)ID_TRAVERSALS, NULL, NULL);
+		        CreateWindow("BUTTON", "DFS", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 230, 10, 100, 30, hwnd, (HMENU)ID_DFS, NULL, NULL);
+		        CreateWindow("BUTTON", "BFS", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 340, 10, 100, 30, hwnd, (HMENU)ID_BFS, NULL, NULL);
+		        CreateWindow("BUTTON", "Eliminar", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 450, 10, 100, 30, hwnd, (HMENU)ID_DELETION, NULL, NULL);
+		        CreateWindow("BUTTON", "Salir", WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON, 560, 10, 100, 30, hwnd, (HMENU)ID_EXIT, NULL, NULL);
+		        hInput = CreateWindow("EDIT", "", WS_VISIBLE | WS_CHILD | WS_BORDER, 10, 50, 100, 25, hwnd, (HMENU)ID_INPUT, NULL, NULL);
+		        break;
 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
@@ -114,9 +126,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         case ID_TRAVERSALS:
             performTraversal(hwnd, 1);  // 0 for in-order traversal
             break;
-        case ID_SEARCH:
-            performSearch(hwnd);
-            break;
+        case ID_DFS:
+		            performSearch(hwnd, true);  // true for DFS
+		            break;
+		        case ID_BFS:
+		            performSearch(hwnd, false);  // false for BFS
+		            break;
         case ID_DELETION: {
             char buffer[256];
             GetWindowText(hInput, buffer, 256);
@@ -132,29 +147,40 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             break;
         }
         break;
+        
+        
 
     case WM_PAINT: {
-	    PAINTSTRUCT ps;
-	    HDC hdc = BeginPaint(hwnd, &ps);
+	        PAINTSTRUCT ps;
+	        HDC hdc = BeginPaint(hwnd, &ps);
 	
-	    // Establecer el color de fondo y el modo
-	    SetBkMode(hdc, OPAQUE); // Asegúrate de usar OPAQUE aquí si deseas un fondo sólido
-	    SetBkColor(hdc, COLOR_BACKGROUND);
+	        // Obtener el tamaño actual de la ventana
+	        RECT clientRect;
+	        GetClientRect(hwnd, &clientRect);
+	        int windowWidth = clientRect.right - clientRect.left;
+	        int windowHeight = clientRect.bottom - clientRect.top;
 	
-	    // Rellenar el fondo de la ventana
-	    HBRUSH hBrush = CreateSolidBrush(COLOR_BACKGROUND);
-	    FillRect(hdc, &ps.rcPaint, hBrush);
-	    DeleteObject(hBrush);
+	        // Establecer el color de fondo y el modo
+	        SetBkMode(hdc, TRANSPARENT);
+	        HBRUSH hBrush = CreateSolidBrush(COLOR_BACKGROUND);
+	        FillRect(hdc, &clientRect, hBrush);
+	        DeleteObject(hBrush);
 	
-	    // Dibuja el árbol
-	    if (root != nullptr) {
-	        drawTree(hdc, root, 400, 100, 200);
+	        // Dibujar el árbol
+	        if (root != nullptr) {
+	            int treeHeight = getTreeHeight(root);
+	            int xOffset = windowWidth / 3; // Ajustar según sea necesario
+	            drawTree(hdc, root, windowWidth / 2, 100, xOffset, 0, treeHeight - 1);
+	        }
+	
+	        EndPaint(hwnd, &ps);
+	        break;
 	    }
-	
-	    EndPaint(hwnd, &ps);
-	    break;
-	}
-	
+	    
+	case WM_SIZE:
+	        // Forzar un repintado cuando se redimensiona la ventana
+	        InvalidateRect(hwnd, NULL, TRUE);
+	        break;    
 
     case WM_CTLCOLORBTN: {
         HDC hdc = (HDC)wParam;
@@ -184,49 +210,58 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-
-void drawTree(HDC hdc, struct nodo* node, int x, int y, int xOffset) {
+// Función para dibujar el árbol
+void drawTree(HDC hdc, struct nodo* node, int x, int y, int xOffset, int level, int maxLevel) {
     if (node == nullptr) return;
 
-    // Set the node fill color and create a brush
+    // Ajustar el tamaño del nodo y la fuente según el tamaño de la ventana
+    int nodeSize = 30 + (maxLevel - level) * 2; // Nodos más grandes en niveles superiores
+    HFONT hFont = CreateFont(25 + (maxLevel - level), 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, 
+                             DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, 
+                             CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, "Segoe UI");
+    HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
+
+    // Configurar el pincel y la pluma
     HBRUSH hNodeBrush = CreateSolidBrush(COLOR_NODE_FILL);
+    HPEN hPen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
     SelectObject(hdc, hNodeBrush);
-
-    // Draw the current node
-    Ellipse(hdc, x - 35, y - 35, x + 35, y + 35);
-
-    // Set the text color and background mode for the node text
-    SetTextColor(hdc, COLOR_NODE_TEXT);
-    SetBkMode(hdc, COLOR_BACKGROUND);//******************/
-
-    // Draw the node's value
-    std::string value = std::to_string(node->clave);
-    TextOut(hdc, x - 20, y - 12, value.c_str(), value.length());
-
-    // Clean up the brush
-    DeleteObject(hNodeBrush);
-
-    // Set the pen color for drawing lines
-    HPEN hPen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0)); // White pen
     HPEN hOldPen = (HPEN)SelectObject(hdc, hPen);
 
-    // Draw lines to children
+    // Dibujar el nodo actual
+    Ellipse(hdc, x - nodeSize, y - nodeSize, x + nodeSize, y + nodeSize);
+
+    // Configurar y dibujar el texto del nodo
+    SetTextColor(hdc, COLOR_NODE_TEXT);
+    SetBkMode(hdc, TRANSPARENT);
+    std::string value = std::to_string(node->clave);
+    RECT textRect = {x - nodeSize, y - nodeSize, x + nodeSize, y + nodeSize};
+    DrawText(hdc, value.c_str(), -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    // Calcular las posiciones de los hijos
+    int nextXOffset = xOffset / 2;
+    int leftX = x - nextXOffset;
+    int rightX = x + nextXOffset;
+    int childY = y + 80 + (maxLevel - level) * 10; // Más espacio vertical en niveles superiores
+
+    // Dibujar líneas a los hijos y dibujar los hijos recursivamente
     if (node->izquierda) {
-        MoveToEx(hdc, x, y + 20, NULL); // Move to the bottom of the current node
-        LineTo(hdc, x - xOffset, y + 80); // Draw line to the left child
-        drawTree(hdc, node->izquierda, x - xOffset, y + 100, xOffset / 2);
+        MoveToEx(hdc, x, y + nodeSize, NULL);
+        LineTo(hdc, leftX, childY - nodeSize);
+        drawTree(hdc, node->izquierda, leftX, childY, nextXOffset, level + 1, maxLevel);
     }
     if (node->derecha) {
-        MoveToEx(hdc, x, y + 20, NULL); // Move to the bottom of the current node
-        LineTo(hdc, x + xOffset, y + 80); // Draw line to the right child
-        drawTree(hdc, node->derecha, x + xOffset, y + 100, xOffset / 2);
+        MoveToEx(hdc, x, y + nodeSize, NULL);
+        LineTo(hdc, rightX, childY - nodeSize);
+        drawTree(hdc, node->derecha, rightX, childY, nextXOffset, level + 1, maxLevel);
     }
 
-    // Restore the old pen and clean up
+    // Limpiar
+    SelectObject(hdc, hOldFont);
+    DeleteObject(hFont);
     SelectObject(hdc, hOldPen);
     DeleteObject(hPen);
+    DeleteObject(hNodeBrush);
 }
-
 
 
 // Función auxiliar para mostrar MessageBox con colores correctos
@@ -275,20 +310,42 @@ void performTraversal(HWND hwnd, int traversalType) {
 }
 
 
-void performSearch(HWND hwnd) {
+
+void performSearch(HWND hwnd, bool isDFS) {
     char buffer[256];
     GetWindowText(GetDlgItem(hwnd, ID_INPUT), buffer, 256);
     int value = atoi(buffer);
     if (value != 0) {
-        ResultadoBusqueda result = dfs(root, value);
+        ResultadoBusqueda result;
+        std::string searchType;
+        if (isDFS) {
+            result = dfs(root, value);
+            searchType = "DFS";
+        } else {
+            result = bfs(root, value);
+            searchType = "BFS";
+        }
+
         std::stringstream ss;
+        ss << searchType << " Search Result:\n\n";
         if (result.encontrado) {
             ss << "Value " << value << " found at level " << result.nivel
-               << "\nPosition: " << result.posicion;
+               << "\nPosition: " << result.posicion << "\n\n";
         } else {
-            ss << "Value " << value << " not found in the tree.";
+            ss << "Value " << value << " not found in the tree.\n\n";
         }
         
-        showColoredMessageBox(hwnd, ss.str().c_str(), "Search Result", MB_OK);
+        // Añadir la lista de nodos visitados al mensaje
+        ss << "Nodes visited in order:\n";
+        Nodo<int>* nodoActual = result.nodosVisitados.getCabeza();
+        while (nodoActual != nullptr) {
+            ss << nodoActual->dato;
+            if (nodoActual->siguiente != nullptr) {
+                ss << " -> ";
+            }
+            nodoActual = nodoActual->siguiente;
+        }
+        
+        showColoredMessageBox(hwnd, ss.str().c_str(), "Search Result", MB_OK | MB_ICONINFORMATION);
     }
 }

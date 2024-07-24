@@ -210,10 +210,11 @@ struct ResultadoBusqueda {
     bool encontrado;
     int nivel;
     std::string posicion;
+    Lista<int> nodosVisitados;
 };
 
 ResultadoBusqueda dfs(struct nodo* raiz, int valorBuscado) {
-    if (raiz == nullptr) return {false, -1, ""};
+    if (raiz == nullptr) return {false, -1, "", Lista<int>()};
     
     struct NodoInfo {
         nodo* nodo;
@@ -222,14 +223,17 @@ ResultadoBusqueda dfs(struct nodo* raiz, int valorBuscado) {
     };
     
     Lista<NodoInfo> pila;
+    Lista<int> nodosVisitados;
     pila.insertarAlFinal({raiz, 1, "raiz"});
     
     while (!pila.esVacia()) {
         NodoInfo actual = pila.getCabeza()->dato;
         pila.eliminarCabeza();
         
+        nodosVisitados.insertarAlFinal(actual.nodo->clave);
+        
         if (actual.nodo->clave == valorBuscado) {
-            return {true, actual.nivel, actual.posicion};
+            return {true, actual.nivel, actual.posicion, nodosVisitados};
         }
         
         if (actual.nodo->derecha != nullptr) {
@@ -240,11 +244,12 @@ ResultadoBusqueda dfs(struct nodo* raiz, int valorBuscado) {
         }
     }
     
-    return {false, -1, ""};
+    return {false, -1, "", nodosVisitados};
 }
+  
 
 ResultadoBusqueda bfs(struct nodo* raiz, int valorBuscado) {
-    if (raiz == nullptr) return {false, -1, ""};
+    if (raiz == nullptr) return {false, -1, "", Lista<int>()};
     
     struct NodoInfo {
         nodo* nodo;
@@ -253,14 +258,17 @@ ResultadoBusqueda bfs(struct nodo* raiz, int valorBuscado) {
     };
     
     Lista<NodoInfo> cola;
+    Lista<int> nodosVisitados;
     cola.insertarAlFinal({raiz, 1, "raiz"});
     
     while (!cola.esVacia()) {
         NodoInfo actual = cola.getCabeza()->dato;
         cola.eliminarCabeza();
         
+        nodosVisitados.insertarAlFinal(actual.nodo->clave);
+        
         if (actual.nodo->clave == valorBuscado) {
-            return {true, actual.nivel, actual.posicion};
+            return {true, actual.nivel, actual.posicion, nodosVisitados};
         }
         
         if (actual.nodo->izquierda != nullptr) {
@@ -271,10 +279,8 @@ ResultadoBusqueda bfs(struct nodo* raiz, int valorBuscado) {
         }
     }
     
-    return {false, -1, ""};
+    return {false, -1, "", nodosVisitados};
 }
-
-
 
 
 #endif
